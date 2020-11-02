@@ -5,34 +5,30 @@
 
 using namespace std;
 
-
+/**
+* Konstruktor tøídy slovník nastaví parametry slovníku a cestu k souborùm.
+*
+* @param trenovaciSoubor je cesta k souboru s trénovacím souborem
+* @param slovnikSoubor je cesta k souboru se slovníkem
+*/
 Slovnik::Slovnik(string trenovaciSoubor, string slovnikSoubor)
 {
 	this->trenovaciSoubor = trenovaciSoubor;
 	this->slovnikSoubor = slovnikSoubor;
 	this->minPocet = 14;
 	this->velikostSlovniku = 0;
-	this->velikostHashSlovniku = 100;
 	this->pocetSlovVSouboru = 170433965; //bez 0 je tam 157261208 slov
 	//vectorSlovnik = new vector<string>(201902);
 	vectorSlovnik = new string[201902];
 }
-/*
-int Slovnik::hashSlova(string& slovo)
-{
-	long long hash = 0;
-	int n = slovo.length();
-	char* charPole = new char[n + 1];
-	strcpy(charPole, slovo.c_str());
 
-	for (int i = 0; i < n; i++)
-		hash = charPole[i] + 31 * hash;
-	return hash % velikostHashSlovniku;
-}
+/**
+* Metoda pøidá slovo do slovníku.
+*
+* @param slovo je slovo, které chceme pøidat
+* @param pocet je poèet výskytù slova
+* @param index je index slova v poli ve slovy
 */
-
-
-
 void Slovnik::pridejSlovoDoSlovniku(string& slovo, int pocet = 1, int index = 0)
 {
 	if (slovo == "0") return;
@@ -51,7 +47,9 @@ void Slovnik::pridejSlovoDoSlovniku(string& slovo, int pocet = 1, int index = 0)
 	//pocetSlovVSouboru++;
 }
 
-
+/**
+* Metoda zjistí poèet všech slov ve slovníku (sèítá jejich frekvence).
+*/
 long long Slovnik::pocetSlovVeSlovniku()
 {
 	long long pocet = 0;
@@ -62,6 +60,9 @@ long long Slovnik::pocetSlovVeSlovniku()
 	return pocet;
 }
 
+/**
+* Metoda odstraní ze slovníku ta slova, jejichž výskyt je menší než je hodnota v promìnné minPocet.
+*/
 void Slovnik::zmensiSlovnik()
 {
 	cout << "Zmensuji slovnik" << endl;
@@ -74,6 +75,9 @@ void Slovnik::zmensiSlovnik()
 	cout << "Slovnik zmensen, je zde: " << mapaSlov.size() << " slov" << endl;
 }
 
+/**
+* Metoda ète ze souboru slova a pøidá je do slovníku.
+*/
 void Slovnik::vytvorSlovnik()
 {
 	cout << "Vytvarim slovnik" << endl;
@@ -86,6 +90,9 @@ void Slovnik::vytvorSlovnik()
 	cout << "Slovnik vytvoren" << endl;
 }
 
+/**
+* Metoda uloží slovník do souboru.
+*/
 void Slovnik::ulozSlovnik()
 {
 	cout << "Ukladam slovnik" << endl;
@@ -97,6 +104,9 @@ void Slovnik::ulozSlovnik()
 	cout << "Slovnik ulozen" << endl;
 }
 
+/**
+* Metoda naète již vytvoøený slovník ze souboru.
+*/
 void Slovnik::nactiSlovnik() {
 	cout << "Nacitam slovnik" << endl;
 	ifstream soubor(slovnikSoubor, ifstream::in);
@@ -112,6 +122,11 @@ void Slovnik::nactiSlovnik() {
 	cout << "Slovnik je nacteny" << endl;
 }
 
+/**
+* Metoda zjistí, jestli se slovo nachází ve slovníku.
+*
+* @param slovo je slovo, u kterého zjišujeme výskyt ve slovníku
+*/
 bool Slovnik::bExistujeSlovo(string slovo)
 {
 	if(mapaSlov.find(slovo)==mapaSlov.end())
@@ -119,12 +134,51 @@ bool Slovnik::bExistujeSlovo(string slovo)
 	return true;
 }
 
+/**
+* Metoda zjistí poèet rùzných slov ve slovníku.
+*/
 int Slovnik::pocetSlov()
 {
 	return mapaSlov.size();
 }
 
+/**
+* Metoda zjistí poèet slov v trénovacím souboru (vèetnì znaku 0). 
+*/
 long long Slovnik::pocetVsechSlov()
 {
 	return pocetSlovVSouboru;
 }
+
+/**
+* Metoda zjistí poèet všech slov v trénovacím souboru (bez znaku 0).
+*/
+long long Slovnik::vypisPocetSlovVTrenovacimSouboru() {
+	ifstream soubor(trenovaciSoubor, ifstream::in);
+	string slovo;
+	long long pocitadlo = 0;
+	while (soubor >> slovo) {
+		if (slovo != "0") {
+			pocitadlo++;
+		}
+	}
+	soubor.close();
+	return pocitadlo;
+}
+
+
+
+
+/*
+int Slovnik::hashSlova(string& slovo)
+{
+	long long hash = 0;
+	int n = slovo.length();
+	char* charPole = new char[n + 1];
+	strcpy(charPole, slovo.c_str());
+
+	for (int i = 0; i < n; i++)
+		hash = charPole[i] + 31 * hash;
+	return hash % velikostHashSlovniku;
+}
+*/

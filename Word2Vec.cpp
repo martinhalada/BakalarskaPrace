@@ -13,16 +13,22 @@
 using namespace std;
 std::mutex mu;
 
+/**
+* Konstruktor tøídy nastaví parametry a cestu k trénovacímu souboru.
+*
+* @param _trenovaciSoubor je cesta k trénovacímu souboru
+* @param _slovnik vytvoøený slovník
+*/
 Word2Vec::Word2Vec(string _trenovaciSoubor, Slovnik* _slovnik) {
 	this->trenovaciSoubor = _trenovaciSoubor;
 	this->slovnik = _slovnik;
 	this->kontextoveOkno = 15;
 	this->miraUceni = 0.025f;
 	this->pocatecniMiraUceni = miraUceni;
-	this->vzorek = 1e-3f;
+	//this->vzorek = 1e-3f;
 	//this->pocetUnikatnichSlov = 10;
 	this->pocetNeuronuSkryteVrstvy = 100;
-	this->pocetEpoch = 5;
+	this->pocetEpoch = 3;
 	this->pocetNegatVzorku = 2;
 	//this->aktualniPocetSlov = 0;
 	this->trenovanaSlova = 0;
@@ -32,6 +38,9 @@ Word2Vec::Word2Vec(string _trenovaciSoubor, Slovnik* _slovnik) {
 }
 
 
+/**
+* Metoda naplní vatice vah náhodnými hodnotami a pøedpoèítá sigmoid funkci.
+*/
 void Word2Vec::alokujNeuronovouSit()
 {
 	cout << "Alokuji neuronovou sit" << endl;
@@ -85,6 +94,13 @@ void Word2Vec::alokujNeuronovouSit()
 }
 
 
+/**
+* Metoda pøeète další vìtu ze souboru.
+*
+* @param soubor je trénovací soubor
+* @param veta je vektor reprezentující vìtu
+*/
+/*
 void Word2Vec::prectiVetu(ifstream &soubor, vector<string> &veta)
 {	
 	string slovo;
@@ -97,24 +113,62 @@ void Word2Vec::prectiVetu(ifstream &soubor, vector<string> &veta)
 		}
 	}	
 }
+*/
 
+void Word2Vec::prectiVetu(char*& buffer, int* index, vector<string>* veta, int* aktualniPocetZnaku)
+{
+	vector<string> v = *veta;
+	int minPozice = *index;
+	int pocetZnaku = *aktualniPocetZnaku;
+	string slovo;
+	while (buffer[minPozice] != '0') {
+		slovo += buffer[minPozice];
+		if (buffer[minPozice] == ' ' || buffer[minPozice] == '\n') {
+			//cout << slovo << endl;
+			v.push_back(slovo);
+			slovo = "";
+		}
+		minPozice++;
+		pocetZnaku++;
+	}
+	pocetZnaku++;
+	*veta = v;
+	minPozice++;
+	*index = minPozice;
+	*aktualniPocetZnaku = pocetZnaku;
+}
+
+
+/**
+* Destruktor odstraní slovník z pamìti.
+*/
 Word2Vec::~Word2Vec()
 {
 	delete slovnik;
 }
 
 
-void Word2Vec::natrenujSit(int vlakna)
+/**
+* Metoda slouží k natrénování vektorù.
+*
+* @param vlakna je poèet vláken programu
+*/
+void Word2Vec::natrenujSit(int vlakna, char* buffer, size_t length)
 {
-	ifstream soubor(trenovaciSoubor, ifstream::in);
+	//ifstream soubor(trenovaciSoubor, ifstream::in);
 
 	vector<string> veta;
-	mu.lock();
-	soubor.seekg(0, ios::end);
-	auto pocetVsechZnaku = soubor.tellg(); //1 159 923 046    pocet vsech slov=170433965  //bez 0 je tam 157261208 slov
-	mu.unlock();
-
-	soubor.seekg(pocetVsechZnaku / (long long)pocetVlaken * (long long)vlakna);
+	//mu.lock();
+	//soubor.seekg(0, ios::end);
+	//auto pocetVsechZnaku = soubor.tellg(); //1 159 923 046    pocet vsech slov=170433965  //bez 0 je tam 157261208 slov
+	auto pocetVsechZnaku = length;
+	//mu.unlock();
+	int hodnota = vlakna + 1;
+	//soubor.seekg(pocetVsechZnaku / (long long)pocetVlaken * (long long)vlakna);
+	int indexBufferStart = pocetVsechZnaku / (long long)pocetVlaken * (long long)vlakna;
+	int indexBufferEnd = pocetVsechZnaku / (long long)pocetVlaken * (long long)(hodnota);
+	int pocetZnakuVSegmentu = indexBufferEnd - indexBufferStart;
+	int aktualniPocetZnaku = 0;
 
 	long long pocetSlov = 0, posledniPocetSlov = 0;
 	long long delkaVety = 0, pozice = 0;
@@ -144,40 +198,51 @@ void Word2Vec::natrenujSit(int vlakna)
 	//cout << "Celk pocet slov: " << slovnik->pocetSlovVeSlovniku() << endl;
 
 	int velikost = slovnik->vectorSlovnik->size();
+	int pom = 0;
 	
 	while (true) {
 		//vypiš progress a uprav trenovaci alpha parametr - mira uèeni
-
+		/*
 		if (pocetSlov - posledniPocetSlov > 10000) {
 			aktualniPocetSlov += pocetSlov - posledniPocetSlov;
 			posledniPocetSlov = pocetSlov;
-			//mu.lock();
-			//cout << "Mira uceni: " << miraUceni << " Dokonceno: " << aktualniPocetSlov / (float)(pocetEpoch * trenovanaSlova + 1) * 100 << "% \r";
 			cout << "Mira uceni: " << miraUceni << " Dokonceno: " << aktualniPocetSlov / (float)(pocetEpoch * 157261208 / pocetVlaken) * 100 << "% \r";
-			//mu.unlock();
 		}
-		//miraUceni = pocatecniMiraUceni * (1 - aktualniPocetSlov / (float)(pocetEpoch * trenovanaSlova + 1));
 		miraUceni = pocatecniMiraUceni * (1 - aktualniPocetSlov / (float)(pocetEpoch * 157261208 + 1));
 		if (miraUceni < pocatecniMiraUceni * 0.0001) miraUceni = pocatecniMiraUceni * 0.0001;
+		*/
+		
+		if (aktualniPocetZnaku - posledniPocetSlov > 100000) {
+			posledniPocetSlov = aktualniPocetZnaku;
+			mu.lock();
+			cout << "Mira uceni: " << miraUceni << " Dokonceno: " << aktualniPocetZnaku / (float)(pocetEpoch * pocetZnakuVSegmentu) * 100 << "% \r";
+			mu.unlock();
+		}
+		//miraUceni = pocatecniMiraUceni * (1 - aktualniPocetZnaku / (float)(pocetEpoch * pocetZnakuVSegmentu + 1));
+		//if (miraUceni < pocatecniMiraUceni * 0.0001) miraUceni = pocatecniMiraUceni * 0.0001;
 
 		//pøeèti další vìtu ze souboru
 		if (veta.empty()) {
-			prectiVetu(soubor, veta);
-			pocetSlov += veta.size();
+			//prectiVetu(soubor, veta);
+			prectiVetu(buffer, &indexBufferStart, &veta, &aktualniPocetZnaku);
+			
+			//pocetSlov += veta.size();
 			pozice = 0;
 		}
+		/*
 		
 		//if (soubor.eof() || (pocetSlov >=  slovnik->pocetVsechSlov() / pocetVlaken)) {
-		if (soubor.eof() || (pocetSlov >= 157261208 / pocetVlaken)) {
-			aktualniPocetSlov += pocetSlov - posledniPocetSlov;
+		if (buffer =="\0" || (aktualniPocetZnaku >= pocetZnakuVSegmentu)) {
+			//aktualniPocetSlov += pocetSlov - posledniPocetSlov;
 			pocetEpoch--;
 			//mu.lock();
-			cout << "\nPocet epoch: " << pocetEpoch << endl;
+			cout << "\nVlaknu: " <<vlakna<<" zbyva: " << pocetEpoch << " epoch." <<endl;
 			//mu.unlock();
 			if (pocetEpoch == 0) { break; }
 			pocetSlov = 0;
 			posledniPocetSlov = 0;
-			soubor.seekg(pocetVsechZnaku / (long long)pocetVlaken * (long long)vlakna);
+			//soubor.seekg(pocetVsechZnaku / (long long)pocetVlaken * (long long)vlakna);
+			indexBufferStart = pocetVsechZnaku / (long long)pocetVlaken * (long long)vlakna;
 		}
 		
 		//nastavení skryté vrstvy a vrstvy s chybou = neu1e
@@ -192,9 +257,8 @@ void Word2Vec::natrenujSit(int vlakna)
 		//skip-gram - w=syn0, w1=syn1neg
 		if (pozice >= veta.size())continue;
 		string slovo = veta[pozice];
-		
-		
-		for (a = b; a < kontextoveOkno * 2 + 1 - b; a++) {
+		int oknoOffset = kontextoveOkno * 2 + 1 - b;
+		for (a = b; a < oknoOffset; a++) {
 			if (a != kontextoveOkno) {
 				c = pozice - kontextoveOkno + a;
 				if (c < 0 || c >= veta.size()) continue;
@@ -275,14 +339,14 @@ void Word2Vec::natrenujSit(int vlakna)
 						*(W1 + l2Index +c) += g * *(W + l1Index +c);
 					}
 					//mu.unlock();
-					/*
-					mu.lock();
-					for (int i = 0; i < pocetNeuronuSkryteVrstvy; i++) {
-						*(W1+l2Index + i) = *(l2Radek+i);
-					}
+					
+					//mu.lock();
+					//for (int i = 0; i < pocetNeuronuSkryteVrstvy; i++) {
+					//	*(W1+l2Index + i) = *(l2Radek+i);
+					//}
 					//W1[l2] = l2Radek;
-					mu.unlock();
-					*/
+					//mu.unlock();
+					
 				}
 				
 				//mu.lock();
@@ -291,17 +355,17 @@ void Word2Vec::natrenujSit(int vlakna)
 				}	
 				//mu.unlock();
 
-				/*
-				mu.lock();
-				for (int i = 0; i < pocetNeuronuSkryteVrstvy; i++) {
-					*(W+l1Index + i) = *(l1Radek+i);
-				}
+				
+				//mu.lock();
+				//for (int i = 0; i < pocetNeuronuSkryteVrstvy; i++) {
+				//	*(W+l1Index + i) = *(l1Radek+i);
+				//}
 				//W[l1] = l1Radek;
-				mu.unlock();
-				*/
+				//mu.unlock();
+				
 			}
 		}
-		
+		*/
 		
 		//konec vìty
 		pozice++;
@@ -309,13 +373,17 @@ void Word2Vec::natrenujSit(int vlakna)
 			pozice = 0;
 			veta.erase(veta.begin(), veta.end());
 			continue;
-		}	
-	}
+		}
 		
-	soubor.close();
+	}
+	
+	//soubor.close();
 }
 
 
+/**
+* Metoda uloží natrénované vektory do souboru.
+*/
 void Word2Vec::ulozVysledek()
 {
 	cout << "Ukladam vysledek" << endl;
@@ -341,4 +409,35 @@ void Word2Vec::ulozVysledek()
 	}
 	soubor.close();
 	cout << "Vysledek je ulozen" << endl;
+}
+
+void Word2Vec::test(int vlakna, char* buffer, size_t length) {
+	string *veta = new string[1000];
+	string slovo;
+	int index = length / (long long)pocetVlaken * (long long)vlakna;
+	int hodnota = vlakna + 1;
+	int max = length / (long long)pocetVlaken * (long long)hodnota;
+	char pom;
+	int invec = 0;
+	while (index<max) {
+		pom = buffer[index];
+		if (pom == ' ' || pom == '\n') {
+			veta[invec] = slovo;
+			if (invec >= 999) {
+				invec = 0;
+			}
+			slovo = "";
+			invec++;
+		}
+		else {
+			slovo += pom;
+		}
+		index++;
+
+		if (index % 30000 == 0) {
+			mu.lock();
+			cout << "max-min" << max - index << endl;
+			mu.unlock();
+		}
+	}
 }
