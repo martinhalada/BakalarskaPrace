@@ -1,1 +1,2 @@
-# BakalarskaPrace
+# Bakalářská práce
+Vektorová reprezentace slov
