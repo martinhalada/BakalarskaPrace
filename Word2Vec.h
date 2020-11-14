@@ -17,9 +17,6 @@ private:
 	float miraUceni;
 	/* Výchozí alpha (míra uèení). */
 	float pocatecniMiraUceni;
-	
-	//float vzorek;
-
 	/* Poèet epoch (poèet prùchodù souborem). */
 	int pocetEpoch;
 	/* Poèet negativních vzorkù pro Negative Sampling. */
@@ -32,12 +29,6 @@ private:
 	long long pocetUnikatnichSlov;
 	/* Velikost skryté vrstvy. */
 	long long pocetNeuronuSkryteVrstvy;
-
-	//unordered_map<string, vector<float>> W;
-	//unordered_map<string, vector<float>> W1;
-	//vector<float>* W;
-	//vector<float>* W1;
-
 	/* Matice vah vstupní vrstvy. */
 	float* W;
 	/* Matice vah výstupní vrstvy. */
@@ -58,10 +49,10 @@ public:
 	/* Metoda uloží natrénované vektory do souboru. */
 	void ulozVysledek();
 	/* Metoda pøeète další vìtu ze souboru. */
-	//void prectiVetu(ifstream &soubor, vector<string> &veta);
-	void prectiVetu(char*& buffer, int* index, vector<string>* veta, int *pocetZnaku);
+	int prectiVetu(char* &buffer, int* index, string* &veta, int* pocetZnaku, int* znakyVSegmentu);
 	/* Destruktor tøídy. */
 	~Word2Vec();
 
+	/* Metoda pro testování naèítání ze souboru. */
 	void test(int, char* buffer, size_t index);
 };
