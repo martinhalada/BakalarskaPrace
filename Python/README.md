@@ -1,1 +1,1 @@
-# Programy v Pythonu pro přípravu dat
+# Programy v Pythonu pro přípravu dat, zobrazení dat, analýzu sentumentu, kategorizaci článků
