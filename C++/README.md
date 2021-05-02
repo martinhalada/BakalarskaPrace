@@ -1,1 +1,1 @@
-Kódy pro vytvoření slovníku, sítě
+# Kódy pro vytvoření slovníku, sítě
